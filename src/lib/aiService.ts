@@ -14,18 +14,16 @@ export interface AIOptions {
 
 enum AIProvider {
   HUGGINGFACE = 'huggingface',
-  GITHUB_MODELS = 'github_models',
   OPENROUTER = 'openrouter',
   CLARIFAI = 'clarifai'
 }
 
 export class AIService {
   private static readonly HUGGINGFACE_API_KEY = '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';
-  private static readonly GITHUB_MODELS_TOKEN = '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';
   private static readonly OPENROUTER_API_KEY = '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';
   private static readonly CLARIFAI_PAT = '2c4a4*****'; // Replace with your actual PAT
+  private static readonly OPENROUTER_TIMEOUT = 45000; // 45 seconds timeout
   private static client: InferenceClient;
-  private static githubClient: OpenAI;
   private static openrouterClient: OpenAI;
   private static clarifaiModel: Model;
   private static currentAbortController: AbortController | null = null;
@@ -39,16 +37,6 @@ export class AIService {
     return this.client;
   }
 
-  static getGitHubClient(): OpenAI {
-    if (!this.githubClient) {
-      this.githubClient = new OpenAI({
-        apiKey: this.GITHUB_MODELS_TOKEN,
-        baseURL: 'https://models.github.ai/inference',
-        dangerouslyAllowBrowser: true
-      });
-    }
-    return this.githubClient;
-  }
 
   static getOpenRouterClient(): OpenAI {
     if (!this.openrouterClient) {
@@ -272,53 +260,6 @@ Keep responses concise but thorough. Always provide practical, actionable advice
     }
   }
 
-  private static async sendMessageWithGitHubModels(
-    messages: ChatMessage[],
-    onChunk?: (chunk: string) => void,
-    abortController?: AbortController,
-    options?: AIOptions
-  ): Promise<string> {
-    const client = this.getGitHubClient();
-    
-    try {
-      const stream = await client.chat.completions.create({
-        model: 'openai/gpt-5-chat',
-        messages: messages as any,
-        temperature: options?.temperature || 0.7,
-        stream: true,
-        max_tokens: 4096
-      });
-
-      let out = "";
-      for await (const chunk of stream) {
-        // Check if request was aborted
-        if (abortController?.signal.aborted) {
-          throw new Error('Request aborted by user');
-        }
-        
-        const content = chunk.choices?.[0]?.delta?.content;
-        if (content) {
-          out += content;
-          if (onChunk) {
-            // Add slight delay to make streaming more visible
-            await new Promise(resolve => setTimeout(resolve, 20));
-            onChunk(content);
-          }
-        }
-      }
-      
-      return out;
-    } catch (error: any) {
-      if (error.message === 'Request aborted by user') {
-        throw error;
-      }
-      
-      const errorMessage = `GitHub Models API error: ${error.message || 'Unknown error'}`;
-      const apiError = new Error(errorMessage);
-      (apiError as any).status = error.status || 500;
-      throw apiError;
-    }
-  }
 
   private static async sendMessageWithOpenRouter(
     messages: ChatMessage[],
@@ -329,7 +270,15 @@ Keep responses concise but thorough. Always provide practical, actionable advice
     const client = this.getOpenRouterClient();
     
     try {
-      const stream = await client.chat.completions.create({
+      // Create a timeout promise to prevent getting stuck
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('OpenRouter request timeout after 45 seconds'));
+        }, this.OPENROUTER_TIMEOUT);
+      });
+
+      // Race the API call against the timeout
+      const streamPromise = client.chat.completions.create({
         model: 'deepseek/deepseek-r1-0528:free',
         messages: messages as any,
         temperature: options?.temperature || 0.7,
@@ -337,12 +286,19 @@ Keep responses concise but thorough. Always provide practical, actionable advice
         max_tokens: 4096
       });
 
+      const stream = await Promise.race([streamPromise, timeoutPromise]) as any;
+
       let out = "";
+      let lastChunkTime = Date.now();
+      
       for await (const chunk of stream) {
         // Check if request was aborted
         if (abortController?.signal.aborted) {
           throw new Error('Request aborted by user');
         }
+
+        // Update last chunk time
+        lastChunkTime = Date.now();
         
         const content = chunk.choices?.[0]?.delta?.content;
         if (content) {
@@ -353,12 +309,25 @@ Keep responses concise but thorough. Always provide practical, actionable advice
             onChunk(content);
           }
         }
+
+        // Check for streaming timeout (no chunks for 30 seconds)
+        if (Date.now() - lastChunkTime > 30000) {
+          throw new Error('OpenRouter streaming timeout - no response chunks received');
+        }
       }
       
       return out;
     } catch (error: any) {
       if (error.message === 'Request aborted by user') {
         throw error;
+      }
+      
+      // Check if it's a timeout error
+      if (error.message.includes('timeout')) {
+        console.warn('⏱️ OpenRouter timeout, will fallback to HuggingFace');
+        const timeoutError = new Error('OpenRouter timeout - request took too long');
+        (timeoutError as any).status = 408; // Request Timeout
+        throw timeoutError;
       }
       
       const errorMessage = `OpenRouter API error: ${error.message || 'Unknown error'}`;
