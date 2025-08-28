@@ -24,7 +24,7 @@ export class AIService {
   private static openrouterClient: OpenAI;
   private static currentAbortController: AbortController | null = null;
   private static currentProvider: AIProvider = AIProvider.HUGGINGFACE;
-  private static currentMode: 'normal' | 'judging' = 'normal';
+  private static currentMode: 'normal' | 'judging' | 'openrouter' = 'normal';
 
   static getClient(): InferenceClient {
     if (!this.client) {
@@ -45,7 +45,7 @@ export class AIService {
     return this.openrouterClient;
   }
 
-  static setMode(mode: 'normal' | 'judging') {
+  static setMode(mode: 'normal' | 'judging' | 'openrouter') {
     this.currentMode = mode;
   }
 
@@ -145,7 +145,34 @@ Keep responses concise but thorough. Always provide practical, actionable advice
           }
 
 
-        case 'normal':
+        case 'openrouter':
+          // OpenRouter mode - only use OpenRouter
+          try {
+            const result = await this.sendMessageWithOpenRouter(messagesWithSystem, onChunk, abortController, options);
+            console.log('✅ OpenRouter request successful');
+            this.currentProvider = AIProvider.OPENROUTER;
+            return result;
+          } catch (openrouterError: any) {
+            console.error('❌ OpenRouter failed:', openrouterError);
+            
+            if (openrouterError instanceof Error && openrouterError.message === 'Request aborted by user') {
+              return "Response stopped by user.";
+            }
+            
+            let errorMessage = "⚠️ OpenRouter AI service is currently unavailable";
+            
+            if (openrouterError?.message?.includes('timeout')) {
+              errorMessage += " (request timeout)";
+            }
+            
+            errorMessage += ". Please try again in a moment.";
+            
+            if (onChunk) {
+              onChunk(errorMessage);
+            }
+            return errorMessage;
+          }
+
         default:
           // Normal mode with fallback: HuggingFace -> OpenRouter
           console.log('🟡 Trying HuggingFace first...');
