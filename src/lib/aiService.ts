@@ -147,58 +147,58 @@ Keep responses concise but thorough. Always provide practical, actionable advice
 
         case 'normal':
         default:
-          // Normal mode with fallback: OpenRouter -> HuggingFace
-          console.log('🟡 Trying OpenRouter first...');
+          // Normal mode with fallback: HuggingFace -> OpenRouter
+          console.log('🟡 Trying HuggingFace first...');
           try {
-            const result = await this.sendMessageWithOpenRouter(messagesWithSystem, onChunk, abortController, options);
-            console.log('✅ OpenRouter request successful');
-            this.currentProvider = AIProvider.OPENROUTER;
-            return result;
-          } catch (openrouterError: any) {
-            console.error('❌ OpenRouter failed:', openrouterError);
-            
-            if (openrouterError instanceof Error && openrouterError.message === 'Request aborted by user') {
-              return "Response stopped by user.";
-            }
-            
-            // Fallback to HuggingFace
-            console.log('🔄 OpenRouter failed, trying HuggingFace...');
-            try {
-              const client = this.getClient();
-              const stream = client.chatCompletionStream({
-                provider: "together",
-                model: "openai/gpt-oss-120b",
-                messages: messagesWithSystem as any,
-                temperature: options?.temperature || 0.7,
-              });
+            const client = this.getClient();
+            const stream = client.chatCompletionStream({
+              provider: "together",
+              model: "openai/gpt-oss-120b",
+              messages: messagesWithSystem as any,
+              temperature: options?.temperature || 0.7,
+            });
 
-              let out = "";
-              for await (const chunk of stream) {
-                // Check if request was aborted
-                if (abortController?.signal.aborted) {
-                  throw new Error('Request aborted by user');
-                }
-                
-                if (chunk.choices && chunk.choices.length > 0) {
-                  const newContent = chunk.choices[0].delta.content;
-                  if (newContent) {
-                    out += newContent;
-                    if (onChunk) {
-                      // Add slight delay to make streaming more visible
-                      await new Promise(resolve => setTimeout(resolve, 20));
-                      onChunk(newContent);
-                    }
+            let out = "";
+            for await (const chunk of stream) {
+              // Check if request was aborted
+              if (abortController?.signal.aborted) {
+                throw new Error('Request aborted by user');
+              }
+              
+              if (chunk.choices && chunk.choices.length > 0) {
+                const newContent = chunk.choices[0].delta.content;
+                if (newContent) {
+                  out += newContent;
+                  if (onChunk) {
+                    // Add slight delay to make streaming more visible
+                    await new Promise(resolve => setTimeout(resolve, 20));
+                    onChunk(newContent);
                   }
                 }
               }
+            }
+            
+            console.log('✅ HuggingFace request successful');
+            this.currentProvider = AIProvider.HUGGINGFACE;
+            return out;
+          } catch (hfError: any) {
+            console.error('❌ HuggingFace failed:', hfError);
+            
+            if (hfError instanceof Error && hfError.message === 'Request aborted by user') {
+              return "Response stopped by user.";
+            }
+            
+            // Fallback to OpenRouter
+            console.log('🔄 HuggingFace failed, trying OpenRouter...');
+            try {
+              const result = await this.sendMessageWithOpenRouter(messagesWithSystem, onChunk, abortController, options);
+              console.log('✅ OpenRouter fallback successful');
+              this.currentProvider = AIProvider.OPENROUTER;
+              return result;
+            } catch (openrouterError: any) {
+              console.error('❌ OpenRouter fallback failed:', openrouterError);
               
-              console.log('✅ HuggingFace fallback successful');
-              this.currentProvider = AIProvider.HUGGINGFACE;
-              return out;
-            } catch (hfError: any) {
-              console.error('❌ HuggingFace fallback failed:', hfError);
-              
-              if (hfError instanceof Error && hfError.message === 'Request aborted by user') {
+              if (openrouterError instanceof Error && openrouterError.message === 'Request aborted by user') {
                 return "Response stopped by user.";
               }
               
@@ -211,7 +211,13 @@ Keep responses concise but thorough. Always provide practical, actionable advice
                 errorMessage += "• HuggingFace: Service unavailable\n";
               }
               
-              errorMessage += "• OpenRouter: Connection failed\n\nPlease try again in a few minutes.";
+              if (openrouterError?.message?.includes('timeout')) {
+                errorMessage += "• OpenRouter: Request timeout\n";
+              } else {
+                errorMessage += "• OpenRouter: Connection failed\n";
+              }
+              
+              errorMessage += "\nPlease try again in a few minutes.";
               
               if (onChunk) {
                 onChunk(errorMessage);
