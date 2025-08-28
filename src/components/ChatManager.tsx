@@ -47,9 +47,10 @@ export const ChatManager = () => {
   const [showModeSelector, setShowModeSelector] = useState(() => 
     !localStorage.getItem('sant-ai-app-mode')
   );
-  const [currentMode, setCurrentMode] = useState<'normal' | 'judging' | 'clarifai'>(() => 
-    (localStorage.getItem('sant-ai-app-mode') as 'normal' | 'judging' | 'clarifai') || 'normal'
-  );
+  const [currentMode, setCurrentMode] = useState<'normal' | 'judging'>(() => {
+    const saved = localStorage.getItem('sant-ai-app-mode') as 'normal' | 'judging' | 'clarifai';
+    return saved === 'clarifai' ? 'normal' : (saved || 'normal');
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [currentSystemPrompt, setCurrentSystemPrompt] = useState<string>('');
   const { toast } = useToast();
@@ -170,7 +171,7 @@ export const ChatManager = () => {
     onToggleTheme: () => setDarkMode(!darkMode),
   });
 
-  const handleModeSelect = (mode: 'normal' | 'judging' | 'clarifai') => {
+  const handleModeSelect = (mode: 'normal' | 'judging') => {
     setCurrentMode(mode);
     setShowModeSelector(false);
     localStorage.setItem('sant-ai-app-mode', mode);

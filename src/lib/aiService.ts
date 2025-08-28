@@ -1,6 +1,5 @@
 import { InferenceClient } from "@huggingface/inference";
 import OpenAI from 'openai';
-import { Model, Input } from "clarifai-nodejs";
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -14,21 +13,18 @@ export interface AIOptions {
 
 enum AIProvider {
   HUGGINGFACE = 'huggingface',
-  OPENROUTER = 'openrouter',
-  CLARIFAI = 'clarifai'
+  OPENROUTER = 'openrouter'
 }
 
 export class AIService {
   private static readonly HUGGINGFACE_API_KEY = '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';
   private static readonly OPENROUTER_API_KEY = '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';
-  private static readonly CLARIFAI_PAT = '2c4a4*****'; // Replace with your actual PAT
   private static readonly OPENROUTER_TIMEOUT = 45000; // 45 seconds timeout
   private static client: InferenceClient;
   private static openrouterClient: OpenAI;
-  private static clarifaiModel: Model;
   private static currentAbortController: AbortController | null = null;
   private static currentProvider: AIProvider = AIProvider.HUGGINGFACE;
-  private static currentMode: 'normal' | 'judging' | 'clarifai' = 'normal';
+  private static currentMode: 'normal' | 'judging' = 'normal';
 
   static getClient(): InferenceClient {
     if (!this.client) {
@@ -49,17 +45,7 @@ export class AIService {
     return this.openrouterClient;
   }
 
-  static getClarifaiModel(): Model {
-    if (!this.clarifaiModel) {
-      this.clarifaiModel = new Model({
-        url: "https://clarifai.com/openai/chat-completion/models/gpt-5",
-        authConfig: { pat: this.CLARIFAI_PAT }
-      });
-    }
-    return this.clarifaiModel;
-  }
-
-  static setMode(mode: 'normal' | 'judging' | 'clarifai') {
+  static setMode(mode: 'normal' | 'judging') {
     this.currentMode = mode;
   }
 
@@ -158,26 +144,6 @@ Keep responses concise but thorough. Always provide practical, actionable advice
             return errorMessage;
           }
 
-        case 'clarifai':
-          // Clarifai mode - use Clarifai GPT-5 model
-          try {
-            const result = await this.sendMessageWithClarifai(messages, onChunk, abortController, options);
-            console.log('✅ Clarifai request successful');
-            this.currentProvider = AIProvider.CLARIFAI;
-            return result;
-          } catch (clarifaiError: any) {
-            console.error('❌ Clarifai failed:', clarifaiError);
-            
-            if (clarifaiError instanceof Error && clarifaiError.message === 'Request aborted by user') {
-              return "Response stopped by user.";
-            }
-            
-            const errorMessage = "⚠️ Clarifai AI service is currently unavailable. Please try again in a moment.";
-            if (onChunk) {
-              onChunk(errorMessage);
-            }
-            return errorMessage;
-          }
 
         case 'normal':
         default:
@@ -337,63 +303,6 @@ Keep responses concise but thorough. Always provide practical, actionable advice
     }
   }
 
-  private static async sendMessageWithClarifai(
-    messages: ChatMessage[],
-    onChunk?: (chunk: string) => void,
-    abortController?: AbortController,
-    options?: AIOptions
-  ): Promise<string> {
-    try {
-      const model = this.getClarifaiModel();
-      
-      // Build prompt from conversation
-      const prompt = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
-      
-      // Create multimodal input (text only for now, can be extended for images)
-      const multiInputs = Input.getMultimodalInput({
-        inputId: "",
-        rawText: prompt,
-      });
-
-      const inferenceParams = { 
-        temperature: options?.temperature || 0.7, 
-        maxTokens: 4096 
-      };
-
-      const modelPrediction = await model.predict({
-        inputs: [multiInputs],
-        inferenceParams,
-      });
-
-      const response = modelPrediction?.[0]?.data?.text?.raw || '';
-      
-      if (!response) {
-        throw new Error('No response from Clarifai model');
-      }
-
-      // Stream-like UX
-      if (onChunk && response) {
-        const parts = response.split(/(\s+)/); // keep spaces
-        for (let i = 0; i < parts.length; i++) {
-          if (abortController?.signal.aborted) {
-            throw new Error('Request aborted by user');
-          }
-          const piece = parts[i];
-          if (piece) onChunk(piece);
-          await new Promise((r) => setTimeout(r, 20));
-        }
-      }
-
-      return response;
-    } catch (err: any) {
-      console.error('🔴 Clarifai: Detailed error:', err);
-      if (err?.message === 'Request aborted by user') throw err;
-      
-      const details = err?.message || err?.toString() || 'Unknown error';
-      const apiError = new Error(`Clarifai AI API error: ${details}`);
-      throw apiError;
-    }
-  }
 
   static stopCurrentRequest() {
     if (this.currentAbortController) {

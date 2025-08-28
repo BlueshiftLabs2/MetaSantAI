@@ -6,7 +6,7 @@ import { Bot, Zap, Cloud } from 'lucide-react';
 
 interface ModeSelectorProps {
   isOpen: boolean;
-  onModeSelect: (mode: 'normal' | 'judging' | 'clarifai') => void;
+  onModeSelect: (mode: 'normal' | 'judging') => void;
 }
 
 export const ModeSelector = ({ isOpen, onModeSelect }: ModeSelectorProps) => {
@@ -48,20 +48,6 @@ export const ModeSelector = ({ isOpen, onModeSelect }: ModeSelectorProps) => {
             <Badge variant="outline" className="text-xs">Specialized</Badge>
           </Button>
 
-          <Button
-            onClick={() => onModeSelect('clarifai')}
-            variant="outline"
-            className="w-full h-auto p-4 flex flex-col gap-2 hover:bg-primary/5"
-          >
-            <div className="flex items-center gap-2">
-              <Cloud className="w-4 h-4" />
-              <span className="font-semibold">Clarifai Mode</span>
-            </div>
-            <p className="text-xs text-muted-foreground text-center leading-tight">
-              Multimodal AI with GPT-5 via Clarifai
-            </p>
-            <Badge variant="outline" className="text-xs">Vision Ready</Badge>
-          </Button>
 
         </div>
       </DialogContent>
