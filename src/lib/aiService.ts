@@ -1,5 +1,6 @@
 import { InferenceClient } from "@huggingface/inference";
 import OpenAI from 'openai';
+import { supabase } from "@/integrations/supabase/client";
 
 // Declare Puter as global since it's loaded via CDN
 declare global {
@@ -29,8 +30,6 @@ enum AIProvider {
 }
 
 export class AIService {
-  private static readonly HUGGINGFACE_API_KEY = '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';
-  private static readonly OPENROUTER_API_KEY = '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';
   private static readonly OPENROUTER_TIMEOUT = 45000; // 45 seconds timeout
   private static client: InferenceClient;
   private static openrouterClient: OpenAI;
@@ -38,23 +37,13 @@ export class AIService {
   private static currentProvider: AIProvider = AIProvider.HUGGINGFACE;
   private static currentMode: 'normal' | 'judging' | 'openrouter' | 'puter' = 'normal';
 
+  // Legacy methods - no longer used but kept for compatibility
   static getClient(): InferenceClient {
-    if (!this.client) {
-      this.client = new InferenceClient(this.HUGGINGFACE_API_KEY);
-    }
-    return this.client;
+    return null as any; // Not used anymore
   }
 
-
   static getOpenRouterClient(): OpenAI {
-    if (!this.openrouterClient) {
-      this.openrouterClient = new OpenAI({
-        apiKey: this.OPENROUTER_API_KEY,
-        baseURL: 'https://openrouter.ai/api/v1',
-        dangerouslyAllowBrowser: true
-      });
-    }
-    return this.openrouterClient;
+    return null as any; // Not used anymore
   }
 
   static setMode(mode: 'normal' | 'judging' | 'openrouter' | 'puter') {
@@ -112,38 +101,11 @@ Keep responses concise but thorough. Always provide practical, actionable advice
       // Route to appropriate service based on mode
       switch (this.currentMode) {
         case 'judging':
-          // Judging mode - only use HuggingFace
+          // Judging mode - only use HuggingFace via edge function
           try {
-            const client = this.getClient();
-            const stream = client.chatCompletionStream({
-              provider: "together",
-              model: "openai/gpt-oss-120b",
-              messages: messagesWithSystem as any,
-              temperature: options?.temperature || 0.7,
-            });
-
-            let out = "";
-            for await (const chunk of stream) {
-              // Check if request was aborted
-              if (abortController?.signal.aborted) {
-                throw new Error('Request aborted by user');
-              }
-              
-              if (chunk.choices && chunk.choices.length > 0) {
-                const newContent = chunk.choices[0].delta.content;
-                if (newContent) {
-                  out += newContent;
-                  if (onChunk) {
-                    // Add slight delay to make streaming more visible
-                    await new Promise(resolve => setTimeout(resolve, 20));
-                    onChunk(newContent);
-                  }
-                }
-              }
-            }
-            
+            const result = await this.sendMessageWithSupabase(messagesWithSystem, 'huggingface', onChunk, abortController);
             this.currentProvider = AIProvider.HUGGINGFACE;
-            return out;
+            return result;
           } catch (error: any) {
             console.error('HuggingFace AI Service Error (Judging Mode):', error);
             if (error instanceof Error && error.message === 'Request aborted by user') {
@@ -158,9 +120,9 @@ Keep responses concise but thorough. Always provide practical, actionable advice
 
 
         case 'openrouter':
-          // OpenRouter mode - only use OpenRouter
+          // OpenRouter mode - only use OpenRouter via edge function
           try {
-            const result = await this.sendMessageWithOpenRouter(messagesWithSystem, onChunk, abortController, options);
+            const result = await this.sendMessageWithSupabase(messagesWithSystem, 'openrouter', onChunk, abortController, options);
             console.log('✅ OpenRouter request successful');
             this.currentProvider = AIProvider.OPENROUTER;
             return result;
@@ -217,37 +179,10 @@ Keep responses concise but thorough. Always provide practical, actionable advice
           // Normal mode with fallback: HuggingFace -> OpenRouter -> Puter AI
           console.log('🟡 Trying HuggingFace first...');
           try {
-            const client = this.getClient();
-            const stream = client.chatCompletionStream({
-              provider: "together",
-              model: "openai/gpt-oss-120b",
-              messages: messagesWithSystem as any,
-              temperature: options?.temperature || 0.7,
-            });
-
-            let out = "";
-            for await (const chunk of stream) {
-              // Check if request was aborted
-              if (abortController?.signal.aborted) {
-                throw new Error('Request aborted by user');
-              }
-              
-              if (chunk.choices && chunk.choices.length > 0) {
-                const newContent = chunk.choices[0].delta.content;
-                if (newContent) {
-                  out += newContent;
-                  if (onChunk) {
-                    // Add slight delay to make streaming more visible
-                    await new Promise(resolve => setTimeout(resolve, 20));
-                    onChunk(newContent);
-                  }
-                }
-              }
-            }
-            
+            const result = await this.sendMessageWithSupabase(messagesWithSystem, 'huggingface', onChunk, abortController);
             console.log('✅ HuggingFace request successful');
             this.currentProvider = AIProvider.HUGGINGFACE;
-            return out;
+            return result;
           } catch (hfError: any) {
             console.error('❌ HuggingFace failed:', hfError);
             
@@ -258,7 +193,7 @@ Keep responses concise but thorough. Always provide practical, actionable advice
             // Fallback to OpenRouter
             console.log('🔄 HuggingFace failed, trying OpenRouter...');
             try {
-              const result = await this.sendMessageWithOpenRouter(messagesWithSystem, onChunk, abortController, options);
+              const result = await this.sendMessageWithSupabase(messagesWithSystem, 'openrouter', onChunk, abortController, options);
               console.log('✅ OpenRouter fallback successful');
               this.currentProvider = AIProvider.OPENROUTER;
               return result;
@@ -359,79 +294,100 @@ Keep responses concise but thorough. Always provide practical, actionable advice
   }
 
 
-  private static async sendMessageWithOpenRouter(
+  private static async sendMessageWithSupabase(
     messages: ChatMessage[],
+    provider: 'huggingface' | 'openrouter',
     onChunk?: (chunk: string) => void,
     abortController?: AbortController,
     options?: AIOptions
   ): Promise<string> {
-    const client = this.getOpenRouterClient();
+    const functionName = provider === 'huggingface' ? 'chat-completion' : 'openrouter-chat';
     
     try {
-      // Create a timeout promise to prevent getting stuck
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('OpenRouter request timeout after 45 seconds'));
-        }, this.OPENROUTER_TIMEOUT);
-      });
-
-      // Race the API call against the timeout
-      const streamPromise = client.chat.completions.create({
-        model: 'deepseek/deepseek-r1-0528:free',
-        messages: messages as any,
-        temperature: options?.temperature || 0.7,
-        stream: true,
-        max_tokens: 4096
-      });
-
-      const stream = await Promise.race([streamPromise, timeoutPromise]) as any;
-
-      let out = "";
-      let lastChunkTime = Date.now();
-      
-      for await (const chunk of stream) {
-        // Check if request was aborted
-        if (abortController?.signal.aborted) {
-          throw new Error('Request aborted by user');
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { 
+          messages: messages,
+          ...(provider === 'openrouter' && options?.temperature && { temperature: options.temperature })
         }
+      });
 
-        // Update last chunk time
-        lastChunkTime = Date.now();
-        
-        const content = chunk.choices?.[0]?.delta?.content;
-        if (content) {
-          out += content;
-          if (onChunk) {
-            // Add slight delay to make streaming more visible
-            await new Promise(resolve => setTimeout(resolve, 20));
-            onChunk(content);
+      if (error) {
+        throw new Error(`${provider} API error: ${error.message}`);
+      }
+
+      // Handle non-streaming response (fallback)
+      if (data && typeof data === 'object' && data.content) {
+        if (onChunk) {
+          onChunk(data.content);
+        }
+        return data.content;
+      }
+
+      // If we get here, try streaming by calling the edge function directly
+      const response = await fetch(`https://jhejkdfzjpnojuvoekxk.supabase.co/functions/v1/${functionName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWprZGZ6anBub2p1dm9la3hrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4MzcyNTMsImV4cCI6MjA3MjQxMzI1M30.XLllt39cX0CUs_V0uMLRElKC5cvuwSAY_ce7I303sTU`,
+        },
+        body: JSON.stringify({ 
+          messages: messages,
+          provider: provider,
+          ...(provider === 'openrouter' && options?.temperature && { temperature: options.temperature })
+        }),
+        signal: abortController?.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`${provider} API error: ${response.status} ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let out = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              return out;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) {
+                out += parsed.content;
+                if (onChunk) {
+                  await new Promise(resolve => setTimeout(resolve, 20));
+                  onChunk(parsed.content);
+                }
+              }
+            } catch (e) {
+              // Skip malformed JSON
+            }
           }
         }
-
-        // Check for streaming timeout (no chunks for 30 seconds)
-        if (Date.now() - lastChunkTime > 30000) {
-          throw new Error('OpenRouter streaming timeout - no response chunks received');
-        }
       }
-      
+
       return out;
     } catch (error: any) {
-      if (error.message === 'Request aborted by user') {
-        throw error;
+      if (error.name === 'AbortError' || error.message === 'Request aborted by user') {
+        throw new Error('Request aborted by user');
       }
       
-      // Check if it's a timeout error
-      if (error.message.includes('timeout')) {
-        console.warn('⏱️ OpenRouter timeout, will fallback to HuggingFace');
-        const timeoutError = new Error('OpenRouter timeout - request took too long');
-        (timeoutError as any).status = 408; // Request Timeout
-        throw timeoutError;
-      }
-      
-      const errorMessage = `OpenRouter API error: ${error.message || 'Unknown error'}`;
-      const apiError = new Error(errorMessage);
-      (apiError as any).status = error.status || 500;
-      throw apiError;
+      const errorMessage = `${provider} error: ${error.message || 'Unknown error'}`;
+      throw new Error(errorMessage);
     }
   }
 
