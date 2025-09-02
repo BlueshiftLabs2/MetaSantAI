@@ -1,6 +1,17 @@
 import { InferenceClient } from "@huggingface/inference";
 import OpenAI from 'openai';
 
+// Declare Puter as global since it's loaded via CDN
+declare global {
+  interface Window {
+    puter: {
+      ai: {
+        chat: (message: string, options: { model: string; stream: boolean }) => AsyncIterable<{ text?: string }>;
+      };
+    };
+  }
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -13,7 +24,8 @@ export interface AIOptions {
 
 enum AIProvider {
   HUGGINGFACE = 'huggingface',
-  OPENROUTER = 'openrouter'
+  OPENROUTER = 'openrouter',
+  PUTER = 'puter'
 }
 
 export class AIService {
@@ -24,7 +36,7 @@ export class AIService {
   private static openrouterClient: OpenAI;
   private static currentAbortController: AbortController | null = null;
   private static currentProvider: AIProvider = AIProvider.HUGGINGFACE;
-  private static currentMode: 'normal' | 'judging' | 'openrouter' = 'normal';
+  private static currentMode: 'normal' | 'judging' | 'openrouter' | 'puter' = 'normal';
 
   static getClient(): InferenceClient {
     if (!this.client) {
@@ -45,7 +57,7 @@ export class AIService {
     return this.openrouterClient;
   }
 
-  static setMode(mode: 'normal' | 'judging' | 'openrouter') {
+  static setMode(mode: 'normal' | 'judging' | 'openrouter' | 'puter') {
     this.currentMode = mode;
   }
 
@@ -163,6 +175,65 @@ Keep responses concise but thorough. Always provide practical, actionable advice
             
             if (openrouterError?.message?.includes('timeout')) {
               errorMessage += " (request timeout)";
+            }
+            
+            errorMessage += ". Please try again in a moment.";
+            
+            if (onChunk) {
+              onChunk(errorMessage);
+            }
+            return errorMessage;
+          }
+
+        case 'puter':
+          // Puter AI mode - use Claude Sonnet 4
+          try {
+            // Ensure Puter is loaded
+            if (!window.puter) {
+              throw new Error('Puter SDK not loaded');
+            }
+
+            // Convert messages to single prompt for Puter AI
+            const prompt = messages.map(msg => 
+              msg.role === 'user' ? `User: ${msg.content}` : `Assistant: ${msg.content}`
+            ).join('\n\n') + '\n\nAssistant:';
+
+            const response = await window.puter.ai.chat(prompt, {
+              model: 'openrouter:anthropic/claude-sonnet-4',
+              stream: true
+            });
+
+            let out = "";
+            for await (const part of response) {
+              // Check if request was aborted
+              if (abortController?.signal.aborted) {
+                throw new Error('Request aborted by user');
+              }
+              
+              if (part?.text) {
+                out += part.text;
+                if (onChunk) {
+                  // Add slight delay to make streaming more visible
+                  await new Promise(resolve => setTimeout(resolve, 20));
+                  onChunk(part.text);
+                }
+              }
+            }
+
+            console.log('✅ Puter AI request successful');
+            this.currentProvider = AIProvider.PUTER;
+            return out;
+          } catch (puterError: any) {
+            console.error('❌ Puter AI failed:', puterError);
+            
+            if (puterError instanceof Error && puterError.message === 'Request aborted by user') {
+              return "Response stopped by user.";
+            }
+            
+            let errorMessage = "⚠️ Puter AI service is currently unavailable";
+            
+            if (puterError?.message?.includes('not loaded')) {
+              errorMessage += " (SDK not loaded)";
             }
             
             errorMessage += ". Please try again in a moment.";

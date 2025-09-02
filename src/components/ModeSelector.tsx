@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Zap, Cloud, Router } from 'lucide-react';
+import { Bot, Zap, Cloud, Router, Brain } from 'lucide-react';
 
 interface ModeSelectorProps {
   isOpen: boolean;
-  onModeSelect: (mode: 'normal' | 'judging' | 'openrouter') => void;
+  onModeSelect: (mode: 'normal' | 'judging' | 'openrouter' | 'puter') => void;
 }
 
 export const ModeSelector = ({ isOpen, onModeSelect }: ModeSelectorProps) => {
@@ -61,6 +61,21 @@ export const ModeSelector = ({ isOpen, onModeSelect }: ModeSelectorProps) => {
               Enhanced AI with OpenRouter only
             </p>
             <Badge variant="outline" className="text-xs">Premium Models</Badge>
+          </Button>
+
+          <Button
+            onClick={() => onModeSelect('puter')}
+            variant="outline"
+            className="w-full h-auto p-4 flex flex-col gap-2 hover:bg-primary/5"
+          >
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              <span className="font-semibold">Puter AI Mode</span>
+            </div>
+            <p className="text-xs text-muted-foreground text-center leading-tight">
+              Claude Sonnet 4 via Puter AI with streaming
+            </p>
+            <Badge variant="outline" className="text-xs">Claude Sonnet 4</Badge>
           </Button>
 
         </div>
