@@ -208,13 +208,6 @@ export const ChatManager = () => {
           <div className="fixed top-0 left-0 right-0 h-14 flex items-center justify-between border-b border-sidebar-border/20 bg-sidebar-background/80 backdrop-blur-xl z-20">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="ml-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
-              
-              {/* Mode/Model Chip */}
-              <div className="hidden md:flex items-center gap-2">
-                <div className="px-3 py-1 bg-sidebar-accent/50 rounded-full text-xs font-medium text-sidebar-foreground/70 border border-sidebar-border/30">
-                  {currentMode === 'normal' ? 'HuggingFace' : currentMode.toUpperCase()}
-                </div>
-              </div>
             </div>
             
             <div className="flex items-center gap-2">
