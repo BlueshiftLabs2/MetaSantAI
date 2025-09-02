@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Square } from 'lucide-react';
-import { ModelSelector } from './ModelSelector';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -39,13 +38,9 @@ export const ChatInput = ({ onSendMessage, onStopMessage, isLoading }: ChatInput
           onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           disabled={isLoading}
-          className="min-h-[52px] max-h-32 resize-none bg-gradient-card/50 border-border/30 focus:border-primary/50 focus:ring-primary/20 pl-24 rounded-2xl backdrop-blur-sm shadow-sm transition-all duration-200"
+          className="min-h-[52px] max-h-32 resize-none bg-gradient-card/50 border-border/30 focus:border-primary/50 focus:ring-primary/20 px-4 rounded-2xl backdrop-blur-sm shadow-sm transition-all duration-200"
           rows={1}
         />
-        {/* Model Selector inside the text area on the left */}
-        <div className="absolute bottom-3 left-3">
-          <ModelSelector location="chat-center" />
-        </div>
       </div>
       <Button
         type="submit"
