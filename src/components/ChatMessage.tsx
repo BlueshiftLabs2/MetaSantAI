@@ -9,7 +9,7 @@ interface ChatMessageProps {
   role: 'user' | 'assistant';
   content: string;
   isStreaming?: boolean;
-  timestamp?: Date;
+  timestamp?: Date | number;
   model?: string;
 }
 
@@ -307,13 +307,13 @@ export const ChatMessage = ({ role, content, isStreaming, timestamp, model }: Ch
         {!isUser && timestamp && (
           <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
             <span className="font-medium">Sant</span>
-            <span>{timestamp.toLocaleTimeString()}</span>
+            <span>{(typeof timestamp === 'number' ? new Date(timestamp) : timestamp).toLocaleTimeString()}</span>
           </div>
         )}
         
         {isUser && timestamp && (
           <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
-            <span>{timestamp.toLocaleTimeString()}</span>
+            <span>{(typeof timestamp === 'number' ? new Date(timestamp) : timestamp).toLocaleTimeString()}</span>
             <span className="font-medium">You</span>
           </div>
         )}
