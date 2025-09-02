@@ -38,7 +38,7 @@ export const ChatInput = ({ onSendMessage, onStopMessage, isLoading }: ChatInput
           onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           disabled={isLoading}
-          className="min-h-[52px] max-h-32 resize-none bg-gradient-card/50 border-border/30 focus:border-primary/50 focus:ring-primary/20 px-4 rounded-2xl backdrop-blur-sm shadow-sm transition-all duration-200"
+          className="min-h-[52px] max-h-32 resize-none bg-card/50 border-border/30 focus:border-primary/50 focus:ring-primary/20 px-4 rounded-2xl backdrop-blur-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground"
           rows={1}
         />
       </div>
