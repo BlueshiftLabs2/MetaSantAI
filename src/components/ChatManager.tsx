@@ -209,14 +209,6 @@ export const ChatManager = () => {
             <div className="flex items-center gap-4">
               <SidebarTrigger className="ml-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
               
-              {/* Brand */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="Neural Talker" className="w-6 h-6 object-contain" />
-                </div>
-                <div className="font-display font-bold text-lg text-sidebar-foreground">Neural Talker</div>
-              </div>
-              
               {/* Mode/Model Chip */}
               <div className="hidden md:flex items-center gap-2">
                 <div className="px-3 py-1 bg-sidebar-accent/50 rounded-full text-xs font-medium text-sidebar-foreground/70 border border-sidebar-border/30">
@@ -386,11 +378,11 @@ export const ChatManager = () => {
                     <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="Neural Talker" className="w-16 h-16 object-contain" />
                   </div>
                   <div className="space-y-3">
-                    <h1 className="text-4xl font-display font-bold bg-gradient-primary bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                       What Can I Help You With?
                     </h1>
                     <p className="text-lg text-muted-foreground">
-                      Start a conversation with Neural Talker and explore the possibilities of AI.
+                      Start a conversation and explore the possibilities of AI.
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-center gap-2 text-sm">

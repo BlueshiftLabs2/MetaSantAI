@@ -168,7 +168,7 @@ export const ChatMessage = ({ role, content, isStreaming, timestamp, model }: Ch
         const formattedHeader = formatInlineText(headerText);
         
         const headerClasses = {
-          1: "text-2xl font-bold mb-3 mt-6 first:mt-0 font-display",
+          1: "text-2xl font-bold mb-3 mt-6 first:mt-0",
           2: "text-xl font-semibold mb-2 mt-5 first:mt-0", 
           3: "text-lg font-semibold mb-2 mt-4 first:mt-0",
           4: "text-base font-semibold mb-2 mt-3 first:mt-0",
