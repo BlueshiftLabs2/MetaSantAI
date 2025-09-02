@@ -28,7 +28,7 @@ export const ModeSelector = ({ isOpen, onModeSelect }: ModeSelectorProps) => {
               <span className="font-semibold">Normal Mode</span>
             </div>
             <p className="text-xs text-muted-foreground text-center leading-tight">
-              HuggingFace primary, then OpenRouter fallback
+              HuggingFace → OpenRouter → Puter AI fallbacks
             </p>
             <Badge variant="secondary" className="text-xs">Recommended</Badge>
           </Button>

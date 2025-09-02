@@ -188,41 +188,10 @@ Keep responses concise but thorough. Always provide practical, actionable advice
         case 'puter':
           // Puter AI mode - use Claude Sonnet 4
           try {
-            // Ensure Puter is loaded
-            if (!window.puter) {
-              throw new Error('Puter SDK not loaded');
-            }
-
-            // Convert messages to single prompt for Puter AI
-            const prompt = messages.map(msg => 
-              msg.role === 'user' ? `User: ${msg.content}` : `Assistant: ${msg.content}`
-            ).join('\n\n') + '\n\nAssistant:';
-
-            const response = await window.puter.ai.chat(prompt, {
-              model: 'openrouter:anthropic/claude-sonnet-4',
-              stream: true
-            });
-
-            let out = "";
-            for await (const part of response) {
-              // Check if request was aborted
-              if (abortController?.signal.aborted) {
-                throw new Error('Request aborted by user');
-              }
-              
-              if (part?.text) {
-                out += part.text;
-                if (onChunk) {
-                  // Add slight delay to make streaming more visible
-                  await new Promise(resolve => setTimeout(resolve, 20));
-                  onChunk(part.text);
-                }
-              }
-            }
-
+            const result = await this.sendMessageWithPuter(messagesWithSystem, onChunk, abortController, options);
             console.log('✅ Puter AI request successful');
             this.currentProvider = AIProvider.PUTER;
-            return out;
+            return result;
           } catch (puterError: any) {
             console.error('❌ Puter AI failed:', puterError);
             
@@ -245,7 +214,7 @@ Keep responses concise but thorough. Always provide practical, actionable advice
           }
 
         default:
-          // Normal mode with fallback: HuggingFace -> OpenRouter
+          // Normal mode with fallback: HuggingFace -> OpenRouter -> Puter AI
           console.log('🟡 Trying HuggingFace first...');
           try {
             const client = this.getClient();
@@ -300,27 +269,48 @@ Keep responses concise but thorough. Always provide practical, actionable advice
                 return "Response stopped by user.";
               }
               
-              let errorMessage = "⚠️ All AI services are currently unavailable:\n";
-              
-              // Provide specific error details
-              if (hfError?.message?.includes('expired')) {
-                errorMessage += "• HuggingFace: Authentication token expired\n";
-              } else {
-                errorMessage += "• HuggingFace: Service unavailable\n";
+              // Final fallback to Puter AI
+              console.log('🔄 OpenRouter failed, trying Puter AI as final fallback...');
+              try {
+                const result = await this.sendMessageWithPuter(messagesWithSystem, onChunk, abortController, options);
+                console.log('✅ Puter AI final fallback successful');
+                this.currentProvider = AIProvider.PUTER;
+                return result;
+              } catch (puterError: any) {
+                console.error('❌ All services failed including Puter AI:', puterError);
+                
+                if (puterError instanceof Error && puterError.message === 'Request aborted by user') {
+                  return "Response stopped by user.";
+                }
+                
+                let errorMessage = "⚠️ All AI services are currently unavailable:\n";
+                
+                // Provide specific error details
+                if (hfError?.message?.includes('expired')) {
+                  errorMessage += "• HuggingFace: Authentication token expired\n";
+                } else {
+                  errorMessage += "• HuggingFace: Service unavailable\n";
+                }
+                
+                if (openrouterError?.message?.includes('timeout')) {
+                  errorMessage += "• OpenRouter: Request timeout\n";
+                } else {
+                  errorMessage += "• OpenRouter: Connection failed\n";
+                }
+                
+                if (puterError?.message?.includes('not loaded')) {
+                  errorMessage += "• Puter AI: SDK not loaded\n";
+                } else {
+                  errorMessage += "• Puter AI: Service unavailable\n";
+                }
+                
+                errorMessage += "\nPlease try again in a few minutes.";
+                
+                if (onChunk) {
+                  onChunk(errorMessage);
+                }
+                return errorMessage;
               }
-              
-              if (openrouterError?.message?.includes('timeout')) {
-                errorMessage += "• OpenRouter: Request timeout\n";
-              } else {
-                errorMessage += "• OpenRouter: Connection failed\n";
-              }
-              
-              errorMessage += "\nPlease try again in a few minutes.";
-              
-              if (onChunk) {
-                onChunk(errorMessage);
-              }
-              return errorMessage;
             }
           }
       }
@@ -328,6 +318,47 @@ Keep responses concise but thorough. Always provide practical, actionable advice
       // Clear the abort controller
       this.currentAbortController = null;
     }
+  }
+
+  private static async sendMessageWithPuter(
+    messages: ChatMessage[],
+    onChunk?: (chunk: string) => void,
+    abortController?: AbortController,
+    options?: AIOptions
+  ): Promise<string> {
+    // Ensure Puter is loaded
+    if (!window.puter) {
+      throw new Error('Puter SDK not loaded');
+    }
+
+    // Convert messages to single prompt for Puter AI
+    const prompt = messages.map(msg => 
+      msg.role === 'user' ? `User: ${msg.content}` : `Assistant: ${msg.content}`
+    ).join('\n\n') + '\n\nAssistant:';
+
+    const response = await window.puter.ai.chat(prompt, {
+      model: 'openrouter:anthropic/claude-sonnet-4',
+      stream: true
+    });
+
+    let out = "";
+    for await (const part of response) {
+      // Check if request was aborted
+      if (abortController?.signal.aborted) {
+        throw new Error('Request aborted by user');
+      }
+      
+      if (part?.text) {
+        out += part.text;
+        if (onChunk) {
+          // Add slight delay to make streaming more visible
+          await new Promise(resolve => setTimeout(resolve, 20));
+          onChunk(part.text);
+        }
+      }
+    }
+
+    return out;
   }
 
 
