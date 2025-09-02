@@ -304,17 +304,10 @@ export const ChatMessage = ({ role, content, isStreaming, timestamp, model }: Ch
       
       <div className={`flex flex-col max-w-[85%] ${isUser ? 'items-end' : 'items-start'}`}>
         {/* Message header with timestamp and model */}
-        {!isUser && (timestamp || model) && (
+        {!isUser && timestamp && (
           <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
             <span className="font-medium">Sant</span>
-            {model && (
-              <Badge variant="outline" className="text-xs py-0 px-1.5">
-                {model}
-              </Badge>
-            )}
-            {timestamp && (
-              <span>{timestamp.toLocaleTimeString()}</span>
-            )}
+            <span>{timestamp.toLocaleTimeString()}</span>
           </div>
         )}
         
