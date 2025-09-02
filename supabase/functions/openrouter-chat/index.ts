@@ -17,6 +17,8 @@ serve(async (req) => {
     console.log('OpenRouter chat request:', { model, messagesCount: messages?.length });
     
     const openrouterKey = Deno.env.get('OPENROUTER_API_KEY');
+    console.log('OpenRouter API key found:', openrouterKey ? `${openrouterKey.substring(0, 10)}...` : 'NOT FOUND');
+    
     if (!openrouterKey) {
       throw new Error('OpenRouter API key not configured');
     }

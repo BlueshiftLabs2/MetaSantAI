@@ -19,6 +19,8 @@ serve(async (req) => {
     
     if (provider === 'huggingface') {
       const hfToken = Deno.env.get('HF_TOKEN');
+      console.log('HF Token found:', hfToken ? `${hfToken.substring(0, 10)}...` : 'NOT FOUND');
+      
       if (!hfToken) {
         throw new Error('HuggingFace token not configured');
       }
