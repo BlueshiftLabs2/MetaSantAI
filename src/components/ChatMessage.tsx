@@ -297,7 +297,7 @@ export const ChatMessage = ({ role, content, isStreaming, timestamp, model }: Ch
           </Avatar>
         ) : (
           <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center overflow-hidden shadow-md">
-            <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="AI Avatar" className="w-7 h-7 object-contain" />
+            <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="AI Avatar" className="w-full h-full object-cover p-1" />
           </div>
         )}
       </div>
@@ -306,7 +306,7 @@ export const ChatMessage = ({ role, content, isStreaming, timestamp, model }: Ch
         {/* Message header with timestamp and model */}
         {!isUser && (timestamp || model) && (
           <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
-            <span className="font-medium">Neural Talker</span>
+            <span className="font-medium">Sant</span>
             {model && (
               <Badge variant="outline" className="text-xs py-0 px-1.5">
                 {model}

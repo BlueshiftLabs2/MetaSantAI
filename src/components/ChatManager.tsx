@@ -375,7 +375,7 @@ export const ChatManager = () => {
               <div className="flex-1 flex items-center justify-center relative">
                 <div className="text-center space-y-6 max-w-2xl mx-auto px-8">
                   <div className="w-24 h-24 bg-gradient-primary rounded-full mx-auto flex items-center justify-center shadow-glow">
-                    <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="Neural Talker" className="w-16 h-16 object-contain" />
+                    <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="Sant" className="w-full h-full object-cover p-2" />
                   </div>
                   <div className="space-y-3">
                     <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
