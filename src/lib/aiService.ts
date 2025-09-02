@@ -303,6 +303,8 @@ Keep responses concise but thorough. Always provide practical, actionable advice
   ): Promise<string> {
     const functionName = provider === 'huggingface' ? 'chat-completion' : 'openrouter-chat';
     
+    console.log(`🔧 Calling ${functionName} function with ${messages.length} messages`);
+    
     try {
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: { 
@@ -311,7 +313,10 @@ Keep responses concise but thorough. Always provide practical, actionable advice
         }
       });
 
+      console.log(`📊 ${functionName} response:`, { data, error });
+
       if (error) {
+        console.error(`❌ ${functionName} error:`, error);
         throw new Error(`${provider} API error: ${error.message}`);
       }
 
