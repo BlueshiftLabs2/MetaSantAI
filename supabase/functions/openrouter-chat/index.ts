@@ -16,7 +16,7 @@ serve(async (req) => {
     const { messages, model = 'deepseek/deepseek-chat-v3.1:free', temperature = 0.7 } = await req.json();
     console.log('OpenRouter chat request:', { model, messagesCount: messages?.length });
     
-    const openrouterKey = Deno.env.get('OPENROUTER_API_KEY');
+    const openrouterKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('OPENROUTER_KEY');
     console.log('OpenRouter API key found:', openrouterKey ? `${openrouterKey.substring(0, 10)}...` : 'NOT FOUND');
     
     if (!openrouterKey) {

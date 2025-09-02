@@ -18,7 +18,12 @@ serve(async (req) => {
     console.log('Chat completion request:', { provider, messagesCount: messages?.length });
     
     if (provider === 'huggingface') {
-      const hfToken = Deno.env.get('HF_TOKEN');
+      // Support multiple env var names for HF tokens
+      const hfToken =
+        Deno.env.get('HF_TOKEN') ||
+        Deno.env.get('HUGGINGFACE_API_KEY') ||
+        Deno.env.get('HUGGING_FACE_ACCESS_TOKEN') ||
+        Deno.env.get('HUGGINGFACEHUB_API_TOKEN');
       console.log('HF Token found:', hfToken ? `${hfToken.substring(0, 10)}...` : 'NOT FOUND');
       
       if (!hfToken) {
