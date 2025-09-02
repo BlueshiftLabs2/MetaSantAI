@@ -221,65 +221,67 @@ export const Chat = ({ chatId, initialMessages = [], settings, onMessagesUpdate,
 
   return (
     <div className="flex flex-col h-full w-full mx-auto px-4">
-      {/* Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-4 space-y-6 max-w-4xl mx-auto w-full custom-scrollbar">
-        {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center max-w-md">
-              <h2 className="text-2xl font-bold text-foreground">What Can I Do For You</h2>
-            </div>
-          </div>
-        )}
-
-        {messages.map((message) => (
-          <div key={message.id} className="group relative">
-            <ChatMessage
-              role={message.role}
-              content={message.content}
-            />
-            <MessageActions
-              message={message}
-              onRegenerate={() => regenerateMessage(message.id)}
-              onDelete={() => deleteMessage(message.id)}
-              onReact={(reaction) => addReaction(message.id, reaction)}
-              onRate={(rating) => rateMessage(message.id, rating)}
-            />
-          </div>
-        ))}
-
-        {isLoading && streamingMessage && (
-          <ChatMessage
-            role="assistant"
-            content={streamingMessage}
-            isStreaming={true}
-          />
-        )}
-
-        {isLoading && !streamingMessage && (
-          <div className="flex gap-4 animate-message-in">
-            <div className="w-8 h-8 bg-gradient-primary rounded-full animate-pulse flex items-center justify-center p-1">
-              <img src="/lovable-uploads/ab68e729-32e0-4450-b838-8a1de0e275ff.png" alt="AI Logo" className="w-full h-full object-contain" />
-            </div>
-            <div className="bg-gradient-card rounded-2xl rounded-bl-md p-4 border border-border/50">
-              <div className="flex gap-1 items-center">
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                <span className="ml-2 text-xs text-muted-foreground">Sant is thinking...</span>
+        {/* Messages */}
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-4 space-y-6 max-w-4xl mx-auto w-full custom-scrollbar">
+          {messages.length === 0 && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md">
+                <h2 className="text-2xl font-display font-bold text-foreground">What Can I Do For You</h2>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={messagesEndRef} />
-      </div>
+          {messages.map((message) => (
+            <div key={message.id} className="group relative">
+              <ChatMessage
+                role={message.role}
+                content={message.content}
+                timestamp={message.timestamp}
+                model={message.model}
+              />
+              <MessageActions
+                message={message}
+                onRegenerate={() => regenerateMessage(message.id)}
+                onDelete={() => deleteMessage(message.id)}
+                onReact={(reaction) => addReaction(message.id, reaction)}
+                onRate={(rating) => rateMessage(message.id, rating)}
+              />
+            </div>
+          ))}
 
-      {/* Input */}
-      <div className="border-t border-border/20 p-4 bg-gradient-card/30 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto">
-          <ChatInput onSendMessage={sendMessage} onStopMessage={stopMessage} isLoading={isLoading} />
+          {isLoading && streamingMessage && (
+            <ChatMessage
+              role="assistant"
+              content={streamingMessage}
+              isStreaming={true}
+            />
+          )}
+
+          {isLoading && !streamingMessage && (
+            <div className="flex gap-4 animate-message-in">
+              <div className="w-10 h-10 bg-gradient-primary rounded-xl animate-pulse flex items-center justify-center p-1">
+                <img src="/lovable-uploads/ab68e729-32e0-4450-b838-8a1de0e275ff.png" alt="AI Logo" className="w-7 h-7 object-contain" />
+              </div>
+              <div className="bg-gradient-card rounded-2xl rounded-bl-md p-4 border border-border/50 shadow-sm">
+                <div className="flex gap-1 items-center">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <span className="ml-2 text-xs text-muted-foreground">Neural Talker is thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
-      </div>
+
+        {/* Input */}
+        <div className="border-t border-border/10 p-4 bg-gradient-card/20 backdrop-blur-sm">
+          <div className="max-w-4xl mx-auto">
+            <ChatInput onSendMessage={sendMessage} onStopMessage={stopMessage} isLoading={isLoading} />
+          </div>
+        </div>
     </div>
   );
 };

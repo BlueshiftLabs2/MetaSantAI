@@ -39,23 +39,23 @@ export const ChatInput = ({ onSendMessage, onStopMessage, isLoading }: ChatInput
           onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           disabled={isLoading}
-          className="min-h-[44px] max-h-32 resize-none bg-gradient-card border-border/50 focus:border-primary/50 focus:ring-primary/20 pl-24"
+          className="min-h-[52px] max-h-32 resize-none bg-gradient-card/50 border-border/30 focus:border-primary/50 focus:ring-primary/20 pl-24 rounded-2xl backdrop-blur-sm shadow-sm transition-all duration-200"
           rows={1}
         />
         {/* Model Selector inside the text area on the left */}
-        <div className="absolute bottom-2 left-2">
+        <div className="absolute bottom-3 left-3">
           <ModelSelector location="chat-center" />
         </div>
       </div>
       <Button
         type="submit"
         disabled={!message.trim() && !isLoading}
-        className="h-11 w-11 p-0 bg-gradient-primary hover:shadow-glow transition-all duration-300 disabled:opacity-50"
+        className="h-12 w-12 p-0 bg-gradient-primary hover:shadow-glow hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100 rounded-xl"
       >
         {isLoading ? (
-          <Square className="w-4 h-4" />
+          <Square className="w-5 h-5" />
         ) : (
-          <Send className="w-4 h-4" />
+          <Send className="w-5 h-5" />
         )}
       </Button>
     </form>

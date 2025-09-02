@@ -59,7 +59,7 @@ export const ChatSidebar = ({
   );
 
   return (
-    <Sidebar className="w-64 border-r border-sidebar-border bg-sidebar-background pt-12">
+    <Sidebar className="w-64 border-r border-sidebar-border bg-sidebar-background pt-14">
       <SidebarContent className="p-2 custom-scrollbar">
         {/* New Chat Button */}
         <div className="mb-4">

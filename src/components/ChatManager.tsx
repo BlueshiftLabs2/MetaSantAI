@@ -200,170 +200,217 @@ export const ChatManager = () => {
       />
       
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-gradient-bg custom-scrollbar">
-        {/* Header with sidebar trigger */}
-        <div className="fixed top-0 left-0 right-0 h-12 flex items-center justify-between border-b border-sidebar-border bg-sidebar-background/95 backdrop-blur-sm z-20">
-          <div className="flex items-center">
-            <SidebarTrigger className="ml-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
-          </div>
+        <div className="min-h-screen flex w-full bg-gradient-bg relative overflow-hidden custom-scrollbar">
+          {/* Background mesh */}
+          <div className="absolute inset-0 bg-gradient-mesh opacity-50 pointer-events-none" />
           
-          {/* Settings Dialog */}
-          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="mr-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Settings</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-6 py-4">
-                {/* Dark Mode Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="dark-mode" className="text-sm font-medium">
-                    Dark Mode
-                  </Label>
-                  <Switch
-                    id="dark-mode"
-                    checked={darkMode}
-                    onCheckedChange={setDarkMode}
-                  />
+          {/* Header with sidebar trigger */}
+          <div className="fixed top-0 left-0 right-0 h-14 flex items-center justify-between border-b border-sidebar-border/20 bg-sidebar-background/80 backdrop-blur-xl z-20">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="ml-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
+              
+              {/* Brand */}
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                  <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="Neural Talker" className="w-6 h-6 object-contain" />
                 </div>
-
-                {/* Notifications Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="notifications" className="text-sm font-medium">
-                    Notifications
-                  </Label>
-                  <Switch
-                    id="notifications"
-                    checked={notifications}
-                    onCheckedChange={setNotifications}
-                  />
-                </div>
-
-                {/* Auto-save Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="auto-save" className="text-sm font-medium">
-                    Auto-save Chats
-                  </Label>
-                  <Switch
-                    id="auto-save"
-                    checked={autoSave}
-                    onCheckedChange={setAutoSave}
-                  />
-                </div>
-
-                {/* AI Response Style */}
-                <div className="space-y-2">
-                  <Label htmlFor="response-style" className="text-sm font-medium">
-                    AI Response Style
-                  </Label>
-                  <Select value={responseStyle} onValueChange={setResponseStyle}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select response style" />
-                    </SelectTrigger>
-                    <SelectContent side="top" align="start">
-                      <SelectItem value="creative">Creative</SelectItem>
-                      <SelectItem value="balanced">Balanced</SelectItem>
-                      <SelectItem value="precise">Precise</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Message History Limit */}
-                <div className="space-y-3">
-                  <Label htmlFor="message-limit" className="text-sm font-medium">
-                    Message History Limit: {messageLimit[0]}
-                  </Label>
-                  <Slider
-                    id="message-limit"
-                    min={10}
-                    max={500}
-                    step={10}
-                    value={messageLimit}
-                    onValueChange={setMessageLimit}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* AI Temperature */}
-                <div className="space-y-3">
-                  <Label htmlFor="ai-temperature" className="text-sm font-medium">
-                    AI Creativity: {aiTemperature[0].toFixed(1)}
-                  </Label>
-                  <Slider
-                    id="ai-temperature"
-                    min={0.1}
-                    max={1.0}
-                    step={0.1}
-                    value={aiTemperature}
-                    onValueChange={setAiTemperature}
-                    className="w-full"
-                  />
-                </div>
+                <div className="font-display font-bold text-lg text-sidebar-foreground">Neural Talker</div>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Search Dialog */}
-        <SearchChat 
-          chats={chats} 
-          onSelectResult={(chatId) => selectChat(chatId)}
-          isOpen={searchOpen}
-          onClose={() => setSearchOpen(false)}
-        />
-
-        {/* Sidebar */}
-        <ChatSidebar
-          chats={chats}
-          currentChatId={currentChatId}
-          onSelectChat={selectChat}
-          onNewChat={createNewChat}
-          onDeleteChat={deleteChat}
-        />
-
-        {/* Main chat area */}
-        <main className="flex-1 flex flex-col pt-12">
-          {currentChat ? (
-            <Chat
-              key={currentChat.id}
-              chatId={currentChat.id}
-              initialMessages={currentChat.messages}
-              systemPrompt={currentSystemPrompt}
-              settings={{
-                temperature: aiTemperature[0],
-                responseStyle,
-                messageLimit: messageLimit[0],
-                notifications
-              }}
-              onMessagesUpdate={(messages) => {
-                // Auto-generate title from first user message if it's still "New Chat"
-                let title = currentChat.title;
-                if (title === 'New Chat' && messages.length > 0) {
-                  const firstUserMessage = messages.find(m => m.role === 'user');
-                  if (firstUserMessage) {
-                    title = generateChatTitle(firstUserMessage.content);
-                  }
-                }
-                updateChatMessages(currentChat.id, messages, title);
-              }}
-            />
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <h2 className="text-2xl font-bold text-foreground">What Can I Do For You</h2>
+              
+              {/* Mode/Model Chip */}
+              <div className="hidden md:flex items-center gap-2">
+                <div className="px-3 py-1 bg-sidebar-accent/50 rounded-full text-xs font-medium text-sidebar-foreground/70 border border-sidebar-border/30">
+                  {currentMode === 'normal' ? 'HuggingFace' : currentMode.toUpperCase()}
+                </div>
               </div>
             </div>
-          )}
-        </main>
-      </div>
+            
+            <div className="flex items-center gap-2">
+              {/* Model Selector */}
+              <ModelSelector location="header" />
+              
+              {/* Settings Dialog */}
+              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="mr-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Settings</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                  {/* Dark Mode Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="dark-mode" className="text-sm font-medium">
+                      Dark Mode
+                    </Label>
+                    <Switch
+                      id="dark-mode"
+                      checked={darkMode}
+                      onCheckedChange={setDarkMode}
+                    />
+                  </div>
+
+                  {/* Notifications Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="notifications" className="text-sm font-medium">
+                      Notifications
+                    </Label>
+                    <Switch
+                      id="notifications"
+                      checked={notifications}
+                      onCheckedChange={setNotifications}
+                    />
+                  </div>
+
+                  {/* Auto-save Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-save" className="text-sm font-medium">
+                      Auto-save Chats
+                    </Label>
+                    <Switch
+                      id="auto-save"
+                      checked={autoSave}
+                      onCheckedChange={setAutoSave}
+                    />
+                  </div>
+
+                  {/* AI Response Style */}
+                  <div className="space-y-2">
+                    <Label htmlFor="response-style" className="text-sm font-medium">
+                      AI Response Style
+                    </Label>
+                    <Select value={responseStyle} onValueChange={setResponseStyle}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select response style" />
+                      </SelectTrigger>
+                      <SelectContent side="top" align="start">
+                        <SelectItem value="creative">Creative</SelectItem>
+                        <SelectItem value="balanced">Balanced</SelectItem>
+                        <SelectItem value="precise">Precise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Message History Limit */}
+                  <div className="space-y-3">
+                    <Label htmlFor="message-limit" className="text-sm font-medium">
+                      Message History Limit: {messageLimit[0]}
+                    </Label>
+                    <Slider
+                      id="message-limit"
+                      min={10}
+                      max={500}
+                      step={10}
+                      value={messageLimit}
+                      onValueChange={setMessageLimit}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* AI Temperature */}
+                  <div className="space-y-3">
+                    <Label htmlFor="ai-temperature" className="text-sm font-medium">
+                      AI Creativity: {aiTemperature[0].toFixed(1)}
+                    </Label>
+                    <Slider
+                      id="ai-temperature"
+                      min={0.1}
+                      max={1.0}
+                      step={0.1}
+                      value={aiTemperature}
+                      onValueChange={setAiTemperature}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            </div>
+
+          </div>
+
+          {/* Search Dialog */}
+          <SearchChat 
+            chats={chats} 
+            onSelectResult={(chatId) => selectChat(chatId)}
+            isOpen={searchOpen}
+            onClose={() => setSearchOpen(false)}
+          />
+
+          {/* Sidebar */}
+          <ChatSidebar
+            chats={chats}
+            currentChatId={currentChatId}
+            onSelectChat={selectChat}
+            onNewChat={createNewChat}
+            onDeleteChat={deleteChat}
+          />
+
+          {/* Main chat area */}
+          <main className="flex-1 flex flex-col pt-14">
+            {currentChat ? (
+              <Chat
+                key={currentChat.id}
+                chatId={currentChat.id}
+                initialMessages={currentChat.messages}
+                systemPrompt={currentSystemPrompt}
+                settings={{
+                  temperature: aiTemperature[0],
+                  responseStyle,
+                  messageLimit: messageLimit[0],
+                  notifications
+                }}
+                onMessagesUpdate={(messages) => {
+                  // Auto-generate title from first user message if it's still "New Chat"
+                  let title = currentChat.title;
+                  if (title === 'New Chat' && messages.length > 0) {
+                    const firstUserMessage = messages.find(m => m.role === 'user');
+                    if (firstUserMessage) {
+                      title = generateChatTitle(firstUserMessage.content);
+                    }
+                  }
+                  updateChatMessages(currentChat.id, messages, title);
+                }}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center relative">
+                <div className="text-center space-y-6 max-w-2xl mx-auto px-8">
+                  <div className="w-24 h-24 bg-gradient-primary rounded-full mx-auto flex items-center justify-center shadow-glow">
+                    <img src="/lovable-uploads/653da4c0-914f-4133-a940-aef3fb615394.png" alt="Neural Talker" className="w-16 h-16 object-contain" />
+                  </div>
+                  <div className="space-y-3">
+                    <h1 className="text-4xl font-display font-bold bg-gradient-primary bg-clip-text text-transparent">
+                      What Can I Help You With?
+                    </h1>
+                    <p className="text-lg text-muted-foreground">
+                      Start a conversation with Neural Talker and explore the possibilities of AI.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2 text-sm">
+                    {['Ask questions', 'Get creative', 'Solve problems', 'Learn something new'].map((suggestion) => (
+                      <div 
+                        key={suggestion}
+                        className="px-4 py-2 bg-gradient-card border border-border/50 rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        onClick={() => {
+                          // Could add functionality to auto-fill these suggestions
+                        }}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
     </SidebarProvider>
     </>
   );
