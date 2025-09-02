@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, model = 'deepseek/deepseek-r1-0528:free', temperature = 0.7 } = await req.json();
+    const { messages, model = 'deepseek/deepseek-chat-v3.1:free', temperature = 0.7 } = await req.json();
     console.log('OpenRouter chat request:', { model, messagesCount: messages?.length });
     
     const openrouterKey = Deno.env.get('OPENROUTER_API_KEY');
