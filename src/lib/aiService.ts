@@ -326,10 +326,7 @@ Keep responses concise but thorough. Always provide practical, actionable advice
     abortController?: AbortController,
     options?: AIOptions
   ): Promise<string> {
-    // Ensure Puter is loaded
-    if (!window.puter) {
-      throw new Error('Puter SDK not loaded');
-    }
+    // Skip verification - proceed directly to Puter AI
 
     // Convert messages to single prompt for Puter AI
     const prompt = messages.map(msg => 
