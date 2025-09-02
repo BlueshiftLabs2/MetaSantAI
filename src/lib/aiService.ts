@@ -305,14 +305,24 @@ Keep responses concise but thorough. Always provide practical, actionable advice
     
     console.log(`🔧 Calling ${functionName} function with ${messages.length} messages`);
     
+    // Add timeout to Supabase function call
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Function call timeout')), 10000); // 10 second timeout
+    });
+    
     try {
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: { 
-          messages: messages,
-          ...(provider === 'openrouter' && options?.temperature && { temperature: options.temperature })
-        }
-      });
-
+      console.log(`⏰ Starting ${functionName} with 10s timeout`);
+      const result = await Promise.race([
+        supabase.functions.invoke(functionName, {
+          body: { 
+            messages: messages,
+            ...(provider === 'openrouter' && options?.temperature && { temperature: options.temperature })
+          }
+        }),
+        timeoutPromise
+      ]);
+      
+      const { data, error } = result as any;
       console.log(`📊 ${functionName} response:`, { data, error });
 
       if (error) {
@@ -322,6 +332,7 @@ Keep responses concise but thorough. Always provide practical, actionable advice
 
       // Handle non-streaming response (fallback)
       if (data && typeof data === 'object' && data.content) {
+        console.log(`✅ Got non-streaming response from ${functionName}`);
         if (onChunk) {
           onChunk(data.content);
         }
@@ -329,6 +340,7 @@ Keep responses concise but thorough. Always provide practical, actionable advice
       }
 
       // If we get here, try streaming by calling the edge function directly
+      console.log(`🔄 No direct response, trying streaming for ${functionName}`)
       const response = await fetch(`https://jhejkdfzjpnojuvoekxk.supabase.co/functions/v1/${functionName}`, {
         method: 'POST',
         headers: {
